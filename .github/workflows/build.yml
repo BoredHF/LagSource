@@ -2,41 +2,23 @@ name: Build
 
 on:
   push:
-    branches: ["**"]
   pull_request:
-    branches: ["**"]
-  workflow_dispatch: {}
-
-permissions:
-  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
-          cache: gradle
-
-      # If you use the Gradle Wrapper (recommended), this validates wrapper checksum, etc.
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
-
+          java-version: 17
       - name: Build
-        run: ./gradlew clean build --no-daemon
-
-      # Upload all jars found under build/libs (covers shaded/non-shaded outputs)
-      - name: Upload Artifact (JAR)
+        run: ./gradlew build
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LagSource-jars
-          path: |
-            **/build/libs/*.jar
-          if-no-files-found: error
+          name: LagSource
+          path: build/libs/*.jar

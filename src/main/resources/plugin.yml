@@ -1,0 +1,17 @@
+name: LagSource
+version: ${version}
+main: com.lagsource.LagSourcePlugin
+api-version: "1.19"
+author: LagSource
+commands:
+  lagsource:
+    description: Snapshot of current entity and chunk load.
+    usage: /lagsource [chunk]
+    permission: lagsource.use
+permissions:
+  lagsource.use:
+    description: Allow access to LagSource commands.
+    default: op
+  lagsource.admin:
+    description: Reserved for future administration features.
+    default: op
