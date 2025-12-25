@@ -8,7 +8,7 @@ public final class LagSourcePlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         if (getCommand("lagsource") != null) {
-            getCommand("lagsource").setExecutor(new LagSourceCommand());
+            getCommand("lagsource").setExecutor(new LagSourceCommand(this));
         } else {
             getLogger().severe("Command 'lagsource' is missing from plugin.yml.");
         }
