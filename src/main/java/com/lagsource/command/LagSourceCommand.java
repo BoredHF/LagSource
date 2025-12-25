@@ -11,6 +11,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -40,10 +41,16 @@ public final class LagSourceCommand implements CommandExecutor {
         int maxReport = Math.max(0, plugin.getConfig().getInt("max-entity-report", 5));
         int chunkWarning = Math.max(0, plugin.getConfig().getInt("chunk-entity-warning", 100));
         boolean chunkOnly = args.length > 0 && args[0].equalsIgnoreCase("chunk");
+        boolean nearby = args.length > 0 && args[0].equalsIgnoreCase("nearby");
         List<World> worlds = plugin.getServer().getWorlds();
         boolean reportDisabled = maxReport == 0;
 
-        sender.sendMessage(ChatColor.GOLD + (chunkOnly ? "LagSource Chunk Snapshot" : "LagSource Snapshot"));
+        if (nearby && !(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "Nearby scans require a player executor.");
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.GOLD + (chunkOnly ? "LagSource Chunk Snapshot" : nearby ? "LagSource Nearby Snapshot" : "LagSource Snapshot"));
         sender.sendMessage(ChatColor.GRAY + "LagSource is not a profiler.");
         if (worlds.isEmpty()) {
             sender.sendMessage(ChatColor.GRAY + "No loaded worlds.");
@@ -52,12 +59,24 @@ public final class LagSourceCommand implements CommandExecutor {
 
         EntitySnapshot snapshot = null;
         List<Map.Entry<EntityType, Integer>> topEntities = List.of();
-        if (!chunkOnly) {
+        if (!chunkOnly && !nearby) {
             snapshot = entitySnapshotService.snapshot(worlds, includePlayers);
             topEntities = topEntities(snapshot.getCounts(), maxReport);
         }
-        List<ChunkSnapshot> topChunks = topChunks(chunkSnapshotService.snapshot(worlds), maxReport);
-        if (!chunkOnly) {
+
+        List<ChunkSnapshot> topChunks;
+        if (nearby) {
+            Player player = (Player) sender;
+            int radius = Math.max(0, plugin.getConfig().getInt("nearby-radius", 3));
+            int centerX = player.getLocation().getChunk().getX();
+            int centerZ = player.getLocation().getChunk().getZ();
+            topChunks = topChunks(chunkSnapshotService.snapshotNearby(player.getWorld(), centerX, centerZ, radius), maxReport);
+            sender.sendMessage(ChatColor.GREEN + "Nearby Radius: " + radius + " chunks");
+        } else {
+            topChunks = topChunks(chunkSnapshotService.snapshot(worlds), maxReport);
+        }
+
+        if (!chunkOnly && !nearby) {
             sender.sendMessage(ChatColor.GREEN + "Total Entities: " + formatCount(snapshot.getTotal()));
             sender.sendMessage(ChatColor.YELLOW + "Top Entities:");
             if (reportDisabled) {
