@@ -1,6 +1,8 @@
 package com.lagsource.command;
 
 import com.lagsource.LagSourcePlugin;
+import com.lagsource.gui.MainDashboardMenu;
+import com.lagsource.gui.MenuRouter;
 import com.lagsource.snapshot.ChunkSnapshot;
 import com.lagsource.snapshot.ChunkSnapshotService;
 import com.lagsource.snapshot.EntitySnapshot;
@@ -23,17 +25,28 @@ import java.util.Map;
 public final class LagSourceCommand implements CommandExecutor {
     private static final String PERMISSION_USE = "lagsource.use";
     private final LagSourcePlugin plugin;
+    private final MenuRouter menuRouter;
     private final EntitySnapshotService entitySnapshotService = new EntitySnapshotService();
     private final ChunkSnapshotService chunkSnapshotService = new ChunkSnapshotService();
 
-    public LagSourceCommand(LagSourcePlugin plugin) {
+    public LagSourceCommand(LagSourcePlugin plugin, MenuRouter menuRouter) {
         this.plugin = plugin;
+        this.menuRouter = menuRouter;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission(PERMISSION_USE)) {
             sender.sendMessage(ChatColor.RED + "You do not have permission to use LagSource.");
+            return true;
+        }
+
+        if (args.length > 0 && args[0].equalsIgnoreCase("gui")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(ChatColor.RED + "The GUI can only be opened by a player.");
+                return true;
+            }
+            menuRouter.open(player, new MainDashboardMenu());
             return true;
         }
 
