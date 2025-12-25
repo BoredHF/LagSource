@@ -1,0 +1,4 @@
+chunk-entity-warning: 100
+max-entity-report: 5
+include-players: false
+# total-entity-warning: 2000
