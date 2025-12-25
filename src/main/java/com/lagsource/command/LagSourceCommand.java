@@ -1,6 +1,8 @@
 package com.lagsource.command;
 
 import com.lagsource.LagSourcePlugin;
+import com.lagsource.snapshot.ChunkSnapshot;
+import com.lagsource.snapshot.ChunkSnapshotService;
 import com.lagsource.snapshot.EntitySnapshot;
 import com.lagsource.snapshot.EntitySnapshotService;
 import org.bukkit.ChatColor;
@@ -20,6 +22,7 @@ public final class LagSourceCommand implements CommandExecutor {
     private static final String PERMISSION_USE = "lagsource.use";
     private final LagSourcePlugin plugin;
     private final EntitySnapshotService entitySnapshotService = new EntitySnapshotService();
+    private final ChunkSnapshotService chunkSnapshotService = new ChunkSnapshotService();
 
     public LagSourceCommand(LagSourcePlugin plugin) {
         this.plugin = plugin;
@@ -34,21 +37,41 @@ public final class LagSourceCommand implements CommandExecutor {
 
         boolean includePlayers = plugin.getConfig().getBoolean("include-players", false);
         int maxReport = plugin.getConfig().getInt("max-entity-report", 5);
+        int chunkWarning = plugin.getConfig().getInt("chunk-entity-warning", 100);
+        boolean chunkOnly = args.length > 0 && args[0].equalsIgnoreCase("chunk");
 
-        EntitySnapshot snapshot = entitySnapshotService.snapshot(plugin.getServer().getWorlds(), includePlayers);
-        List<Map.Entry<EntityType, Integer>> topEntities = topEntities(snapshot.getCounts(), maxReport);
+        EntitySnapshot snapshot = null;
+        List<Map.Entry<EntityType, Integer>> topEntities = List.of();
+        if (!chunkOnly) {
+            snapshot = entitySnapshotService.snapshot(plugin.getServer().getWorlds(), includePlayers);
+            topEntities = topEntities(snapshot.getCounts(), maxReport);
+        }
+        List<ChunkSnapshot> topChunks = topChunks(chunkSnapshotService.snapshot(plugin.getServer().getWorlds()), maxReport);
 
-        sender.sendMessage(ChatColor.GOLD + "LagSource Snapshot");
+        sender.sendMessage(ChatColor.GOLD + (chunkOnly ? "LagSource Chunk Snapshot" : "LagSource Snapshot"));
         sender.sendMessage(ChatColor.GRAY + "LagSource is not a profiler.");
-        sender.sendMessage(ChatColor.YELLOW + "Total Entities: " + formatCount(snapshot.getTotal()));
-        sender.sendMessage(ChatColor.YELLOW + "Top Entities:");
-        if (topEntities.isEmpty()) {
-            sender.sendMessage(ChatColor.GRAY + "No loaded entities.");
+        if (!chunkOnly) {
+            sender.sendMessage(ChatColor.YELLOW + "Total Entities: " + formatCount(snapshot.getTotal()));
+            sender.sendMessage(ChatColor.YELLOW + "Top Entities:");
+            if (topEntities.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No loaded entities.");
+            } else {
+                for (Map.Entry<EntityType, Integer> entry : topEntities) {
+                    sender.sendMessage(ChatColor.GRAY + entry.getKey().name() + ": " + formatCount(entry.getValue()));
+                }
+            }
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Hot Chunks:");
+        if (topChunks.isEmpty()) {
+            sender.sendMessage(ChatColor.GRAY + "No loaded chunks with entities.");
             return true;
         }
 
-        for (Map.Entry<EntityType, Integer> entry : topEntities) {
-            sender.sendMessage(ChatColor.GRAY + entry.getKey().name() + ": " + formatCount(entry.getValue()));
+        for (ChunkSnapshot entry : topChunks) {
+            String warning = entry.getEntityCount() >= chunkWarning ? " (over " + chunkWarning + ")" : "";
+            sender.sendMessage(ChatColor.GRAY + entry.getWorldName() + " (" + entry.getX() + ", " + entry.getZ() + "): "
+                    + formatCount(entry.getEntityCount()) + " entities" + warning);
         }
         return true;
     }
@@ -60,6 +83,14 @@ public final class LagSourceCommand implements CommandExecutor {
             return entries.subList(0, maxReport);
         }
         return entries;
+    }
+
+    private List<ChunkSnapshot> topChunks(List<ChunkSnapshot> snapshots, int maxReport) {
+        snapshots.sort(Comparator.comparingInt(ChunkSnapshot::getEntityCount).reversed());
+        if (snapshots.size() > maxReport) {
+            return snapshots.subList(0, maxReport);
+        }
+        return snapshots;
     }
 
     private String formatCount(int count) {
