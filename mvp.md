@@ -29,3 +29,60 @@ Displays a live snapshot of:
 - Sorted descending
 
 Example output:
+Top Entities:
+
+Villager: 412
+
+Cow: 287
+
+Item: 201
+
+
+### 2. Chunk Hotspot Detection
+- Iterate loaded chunks
+- Count entities per chunk
+- Identify top offenders
+
+Example:
+
+
+Hot Chunks:
+world (123, -45): 189 entities
+world_nether (22, 8): 142 entities
+
+
+### 3. Threshold Warnings
+- Configurable limits:
+  - Entities per chunk
+  - Total entity count
+- Highlight problematic areas
+
+### 4. Read-Only Safety
+- No entity removal
+- No chunk unloading
+- No async world mutation
+
+## Configuration
+```yaml
+chunk-entity-warning: 100
+max-entity-report: 5
+include-players: false
+```
+
+Permissions
+
+lagsource.use
+
+lagsource.admin (future-proofed)
+
+Explicit MVP Exclusions
+
+No TPS sampling
+
+No async profiling
+
+No graphs or charts
+
+No historical storage
+
+No web UI
