@@ -1,4 +1,11 @@
 chunk-entity-warning: 100
 max-entity-report: 5
 include-players: false
+# v2 defaults (inactive until /lagsource nearby and snapshot features are enabled)
+nearby-radius: 3
+# snapshot-enabled: true
+# snapshot-tps-threshold: 18.0
+# snapshot-below-threshold-seconds: 10
+# snapshot-cooldown-seconds: 120
+# snapshot-buffer-size: 10
 # total-entity-warning: 2000
