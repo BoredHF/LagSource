@@ -7,6 +7,9 @@ import com.lagsource.snapshot.ChunkSnapshot;
 import com.lagsource.snapshot.ChunkSnapshotService;
 import com.lagsource.snapshot.EntitySnapshot;
 import com.lagsource.snapshot.EntitySnapshotService;
+import com.lagsource.tps.FallbackTpsProvider;
+import com.lagsource.tps.PaperTpsProvider;
+import com.lagsource.tps.TpsProvider;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -28,10 +31,14 @@ public final class LagSourceCommand implements CommandExecutor {
     private final MenuRouter menuRouter;
     private final EntitySnapshotService entitySnapshotService = new EntitySnapshotService();
     private final ChunkSnapshotService chunkSnapshotService = new ChunkSnapshotService();
+    private final TpsProvider tpsProvider;
 
     public LagSourceCommand(LagSourcePlugin plugin, MenuRouter menuRouter) {
         this.plugin = plugin;
         this.menuRouter = menuRouter;
+        this.tpsProvider = plugin.getServer().getName().toLowerCase(Locale.US).contains("paper")
+                ? new PaperTpsProvider()
+                : new FallbackTpsProvider();
     }
 
     @Override
@@ -46,7 +53,15 @@ public final class LagSourceCommand implements CommandExecutor {
                 sender.sendMessage(ChatColor.RED + "The GUI can only be opened by a player.");
                 return true;
             }
-            menuRouter.open(player, new MainDashboardMenu());
+            boolean includePlayers = plugin.getConfig().getBoolean("include-players", false);
+            int maxReport = Math.max(0, plugin.getConfig().getInt("max-entity-report", 5));
+            List<World> worlds = plugin.getServer().getWorlds();
+            EntitySnapshot snapshot = entitySnapshotService.snapshot(worlds, includePlayers);
+            List<Map.Entry<EntityType, Integer>> topEntities = MainDashboardMenu.sortTopEntities(snapshot, maxReport);
+            List<ChunkSnapshot> topChunks = MainDashboardMenu.sortTopChunks(
+                    chunkSnapshotService.snapshot(worlds), maxReport);
+
+            menuRouter.open(player, new MainDashboardMenu(tpsProvider, snapshot, topChunks, worlds, topEntities));
             return true;
         }
 
